@@ -23,4 +23,7 @@ erl_crash.dump
 message_broker-*.tar
 
 # Temporary files, for example, from tests.
-/tmp/
+/tmp/ 
+
+# configs 
+/config/ 
