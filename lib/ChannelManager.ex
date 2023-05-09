@@ -16,6 +16,12 @@ defmodule ChannelManager do
         parse_CREATE(t,pid)
       whichCmd == "GET" ->
         parse_GET(pid)
+      whichCmd == "PUBLISH" ->
+        parse_PUBLISH(t,pid)
+      whichCmd == "SUBSCRIBE" ->
+        parse_SUBSCRIBE(t,pid)
+      whichCmd == "UNSUBSCRIBE" ->
+        parse_UNSUBSCRIBE(t,pid)
     end
 
     {:noreply, state}
@@ -31,6 +37,41 @@ defmodule ChannelManager do
       send(pid, "created\r\n\n>")
   end
 
+  defp parse_PUBLISH(t,pid) do
+    [chnl | msg] = t
+    cond do
+      containsChannel(chnl) == true ->
+             send(pid, GenServer.call(String.to_atom(chnl), {:update,msg}))
+             publish_messages_to_cosumers(chnl, msg)
+      true -> send(pid,"Channel 404\r\n>")
+    end
+  end
+
+  defp publish_messages_to_cosumers(chnl,msg) do
+     subs = GenServer.call(String.to_atom(chnl), :get_subscribers)
+     cond do
+      length(subs) > 0 ->
+         strMsg = Enum.reduce(msg, "", fn x,acc -> acc <> " "  <> x end )
+         Enum.each(subs, fn sub -> send(sub, "\r\n The message from channel "  <> chnl <> ":\r\n" <> strMsg <> "\r\n" )end);
+      true -> :ok
+     end
+  end
+
+
+  defp parse_SUBSCRIBE([channelName],pid) do
+    cond do
+      containsChannel(channelName) == true ->  send(pid, GenServer.call(String.to_atom(channelName), {:subscribe,pid}))
+      true -> send(pid,"Channel 404\r\n>")
+    end
+  end
+
+  defp parse_UNSUBSCRIBE([channelName],pid) do
+    cond do
+      containsChannel(channelName) == true ->  send(pid, GenServer.call(String.to_atom(channelName), {:unsubscribe,pid}))
+      true -> send(pid,"Channel 404\r\n>")
+    end
+  end
+
   defp parse_GET(to_pid) do
     chnlsString =
     Enum.reduce(Supervisor.which_children(ChannelSupervisor), [], fn x,acc -> {name,_,_,_} = x;  acc ++ [name] end )
@@ -39,9 +80,9 @@ defmodule ChannelManager do
 
   end
 
-  # defp get_channels do
-  #   chnls = Supervisor.which_children(ChannelSupervisor)
-
-  # end
+  defp  containsChannel(chnl) do
+    Enum.reduce(Supervisor.which_children(ChannelSupervisor), [], fn x,acc -> {name,_,_,_} = x;  acc ++ [name] end )
+    |> Enum.member?(String.to_atom(chnl))
+  end
 
 end

@@ -4,6 +4,7 @@ defmodule ConnectionClient do
       |> read_line()
       |> process_data(cmds)
       |> write_line(socket)
+      check_queue(socket)
       serve(socket,cmds)
     end
 
@@ -17,6 +18,25 @@ defmodule ConnectionClient do
 
     defp write_line(line, socket) do
       :gen_tcp.send(socket, line)
+    end
+
+    defp check_queue(socket) do
+      {_, nr} =  Process.info(self(), :message_queue_len)
+      cond do
+        nr > 0 -> read_publisher_messages(nr,socket)
+        true -> :ok
+      end
+    end
+
+    defp read_publisher_messages(nr,socket) do
+      cond do
+        nr > 0 ->
+          receive do
+            msg -> :gen_tcp.send(socket, msg)
+            read_publisher_messages(nr-1,socket)
+          end
+        nr <= 0 -> :ok
+      end
     end
 
     defp process_data(data,cmds) do
