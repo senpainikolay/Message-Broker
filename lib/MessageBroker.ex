@@ -1,11 +1,12 @@
 defmodule MessageBroker do
-  use Supervisor
+  use Application
 
-  def start() do
+  @impl true
+  def start(_type,_args) do
     children = [
           %{
             id: :TcpServerConnectionPoolSupervisor,
-            start: {TcpServer.ConnectionSupervisor, :start,  [] },
+            start: {ConnectionSupervisor, :start,  [] },
             type: :supervisor
           },
           %{
@@ -20,9 +21,7 @@ defmodule MessageBroker do
           },
 
       ]
-    Supervisor.start_link(__MODULE__, children, name: __MODULE__)
-  end
-  def init(children) do
-    Supervisor.init(children, strategy: :one_for_one,  max_restarts: 10, max_seconds: 10 )
+    opts = [strategy: :one_for_one]
+    Supervisor.start_link(children, opts)
   end
 end

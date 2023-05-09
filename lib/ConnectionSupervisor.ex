@@ -1,4 +1,4 @@
-defmodule TcpServer.ConnectionSupervisor do
+defmodule ConnectionSupervisor do
   use Supervisor
 
   def start() do
@@ -8,8 +8,8 @@ defmodule TcpServer.ConnectionSupervisor do
       [
       {Task.Supervisor, name: PublisherConnectionsSupervisor},
       {Task.Supervisor, name: ConsumerConnectionsSupervisor},
-      Supervisor.child_spec({Task, fn -> TcpServer.accept(4000,PublisherConnectionsSupervisor,cmd1) end}, restart: :permanent, id: :PublisherServer ),
-      Supervisor.child_spec({Task, fn -> TcpServer.accept(4001,ConsumerConnectionsSupervisor,cmd2) end}, restart: :permanent, id: :ConsumerServer)
+      Supervisor.child_spec({Task, fn -> TcpServer.accept(6000,PublisherConnectionsSupervisor,cmd1) end}, restart: :permanent, id: :PublisherServer ),
+      Supervisor.child_spec({Task, fn -> TcpServer.accept(6001,ConsumerConnectionsSupervisor,cmd2) end}, restart: :permanent, id: :ConsumerServer)
       ]
     Supervisor.start_link(__MODULE__, children, name: __MODULE__)
   end
