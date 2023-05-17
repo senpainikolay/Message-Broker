@@ -1,18 +1,68 @@
 defmodule ConnectionClient do
-    def serve(socket,cmds) do
+
+
+   def authenticate(socket,cmds) do
+      :gen_tcp.send(socket,"Please introduce yourself:\r\n>" )
+      {status, data } = :gen_tcp.recv(socket,0)
+      cond do
+        status == :ok ->
+          validate_auth_input(socket,cmds,data)
+          |> serve(socket,cmds)
+        status == :error -> IO.inspect("lost connection")
+      end
+   end
+
+   def validate_auth_input(socket, cmds, str) do
+    splitted =  String.split(str)
+    if length(splitted) != 3 do
+      :gen_tcp.send(socket,"Smth wong...\r\n>" )
+      authenticate(socket,cmds)
+    end
+    [h|t ] = splitted
+    if h != "I" do
+      :gen_tcp.send(socket,"Smth wong...\r\n>" )
+      authenticate(socket,cmds)
+    end
+    [h | t] = t
+    if h != "AM" do
+      :gen_tcp.send(socket,"Smth wong...\r\n>" )
+      authenticate(socket,cmds)
+    end
+    [h | _] = t
+    :gen_tcp.send(socket, "Welcome " <> h <> "! \r\n>" )
+    {:ok,pid} = Database.start_link
+    kek = Tds.query!(pid, "SELECT * FROM messages WHERE name = '#{h}'",[])
+    cond do
+      length(kek.rows) > 0 ->
+        :gen_tcp.send(socket, "Heres msgs for " )
+        Enum.each(kek.rows, fn r ->
+          :gen_tcp.send(socket, "\r\n" <> List.to_string(r) <> "\r\n")
+        end  )
+        Database.delete(h,pid)
+      true ->h
+    end
+   end
+
+
+
+    def serve(name,socket,cmds) do
       socket
       |> read_line()
-      |> process_data(cmds)
+      |> process_data(cmds,name)
       |> write_line(socket)
       check_queue(socket)
-      serve(socket,cmds)
+      serve(name,socket,cmds)
     end
 
     defp read_line(socket) do
-      {:ok, data} = :gen_tcp.recv(socket, 0)
+      {status, data } = :gen_tcp.recv(socket,0)
       cond do
-        data == "\r\n" -> "lorem lipsum"
-        true -> data
+        status == :ok ->
+          cond do
+            data == "\r\n" -> "lorem lipsum"
+            true -> data
+          end
+        status == :error -> IO.inspect("LOst connection"); Process.exit(self(), :kill)
       end
     end
 
@@ -39,12 +89,12 @@ defmodule ConnectionClient do
       end
     end
 
-    defp process_data(data,cmds) do
+    defp process_data(data,cmds,name) do
      splitted = String.split(data)
      b = Enum.member?(cmds,elem(List.to_tuple(splitted),0))
      cond do
       b == true ->
-        send(ChannelManager,{data,self()});
+        send(ChannelManager,{data,self(),name});
         receive do
           msg -> msg
         end

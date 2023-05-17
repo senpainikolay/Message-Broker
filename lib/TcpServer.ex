@@ -10,7 +10,7 @@ defmodule TcpServer do
 
   defp loop_acceptor(socket, conSupervisor,cmds) do
     {:ok, client} = :gen_tcp.accept(socket)
-    {:ok, pid} = Task.Supervisor.start_child(conSupervisor, fn -> ConnectionClient.serve(client,cmds) end)
+    {:ok, pid} = Task.Supervisor.start_child(conSupervisor, fn -> ConnectionClient.authenticate(client,cmds) end)
     :ok = :gen_tcp.controlling_process(client, pid)
     loop_acceptor(socket, conSupervisor,cmds)
   end

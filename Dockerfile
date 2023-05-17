@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN mix deps.get --only prod
+RUN mix deps.get
 RUN mix compile
 
 CMD mix run --no-halt
