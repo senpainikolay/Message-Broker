@@ -19,7 +19,11 @@ defmodule MessageBroker do
             start: {ChannelManager, :start,  [] },
             type: :worker
           },
-
+          %{
+            id: :DeadLetterChannel,
+            start: {DeadLetterChannel, :start,  [] },
+            type: :worker
+          },
       ]
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)

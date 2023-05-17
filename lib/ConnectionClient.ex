@@ -97,6 +97,8 @@ defmodule ConnectionClient do
         send(ChannelManager,{data,self(),name});
         receive do
           msg -> msg
+        after
+          3000 -> send(DeadLetterChannel, data)
         end
       true -> "wrong command!\r\n>"
      end
