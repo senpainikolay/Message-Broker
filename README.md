@@ -14,7 +14,7 @@
 
 ## Overall Solution 
 
-# The starting point is MessageBroker.ex. Overlall supervision tree looks like: 
+# The starting point is MessageBroker.ex. Overall supervision tree looks like: 
 
 ``` 
  def start(_type,_args) do
